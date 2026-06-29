@@ -1,0 +1,161 @@
+# 📦 Delivery Cost Calculator
+
+Java-реализация функции расчёта стоимости доставки с полным покрытием тестами на JUnit 5.
+
+---
+
+## Логика расчёта
+
+Итоговая стоимость формируется по формуле:
+
+```
+стоимость = (расстояние + габариты + хрупкость) × коэффициент_загруженности
+```
+
+Результат не может быть ниже **400 ₽**.
+
+### Расстояние
+
+| Дистанция       | Надбавка |
+|-----------------|----------|
+| > 30 км         | +300 ₽   |
+| > 10 км ≤ 30 км | +200 ₽   |
+| > 2 км ≤ 10 км  | +100 ₽   |
+| ≤ 2 км          | +50 ₽    |
+
+### Габариты
+
+| Размер  | Надбавка |
+|---------|----------|
+| `large` | +200 ₽   |
+| `small` | +100 ₽   |
+
+### Хрупкость
+
+| Параметр | Надбавка | Ограничение            |
+|----------|----------|------------------------|
+| `true`   | +300 ₽   | нельзя отправить > 30 км |
+| `false`  | 0 ₽      | —                      |
+
+### Загруженность службы доставки
+
+| Уровень      | Коэффициент |
+|--------------|-------------|
+| `very_high`  | × 1.6       |
+| `high`       | × 1.4       |
+| `elevated`   | × 1.2       |
+| `normal`     | × 1.0       |
+
+---
+
+## Структура проекта
+
+```
+DeliveryCost/
+├── src/
+│   ├── main/java/org/example/
+│   │   └── DeliveryCalculator.java   # Логика расчёта
+│   └── test/java/org/example/
+│       └── DeliveryCalculatorTest.java  # JUnit 5 тесты
+└── pom.xml
+```
+
+---
+
+## Быстрый старт
+
+**Требования:** Java 17+, Maven 3.6+
+
+```bash
+# Клонировать репозиторий
+git clone https://github.com/DanielYaruta/DeliveryCost.git
+cd DeliveryCost
+
+# Запустить тесты
+mvn test
+
+# Собрать проект
+mvn package
+```
+
+---
+
+## Использование
+
+```java
+import org.example.DeliveryCalculator;
+
+// Обычный расчёт
+double cost = DeliveryCalculator.calculate(15.0, "large", false, "high");
+// → 560.0 ₽  (200 + 200) × 1.4
+
+// Хрупкий груз
+double fragile = DeliveryCalculator.calculate(10.0, "small", true, "normal");
+// → 500.0 ₽  (100 + 100 + 300) × 1.0
+
+// Минимальная стоимость
+double min = DeliveryCalculator.calculate(1.0, "small", false, "normal");
+// → 400.0 ₽  (50 + 100 = 150 → минимум 400)
+
+// Исключение: хрупкий груз дальше 30 км
+DeliveryCalculator.calculate(31.0, "small", true, "normal");
+// → IllegalArgumentException
+```
+
+---
+
+## Тесты
+
+Проект покрыт **54 тестами** с использованием JUnit 5.
+
+```
+Tests run: 54, Failures: 0, Errors: 0, Skipped: 0
+```
+
+### Структура тестов
+
+| Класс                | Тег      | Тестов | Что проверяется                              |
+|----------------------|----------|--------|----------------------------------------------|
+| `DistanceCost`       | `basic`  | 8      | Все диапазоны дистанций и граничные значения |
+| `SizeCost`           | `basic`  | 2      | Надбавки за `small` и `large`                |
+| `FragilityCost`      | `basic`  | 2      | Надбавка за хрупкость                        |
+| `LoadMultiplier`     | `basic`  | 4      | Все 4 коэффициента загруженности             |
+| `MinimumCost`        | `edge`   | 8      | Применение минимальной суммы 400 ₽           |
+| `BoundaryDistances`  | `edge`   | 14     | Граничные значения 0, 2, 10, 30, 30.1 км     |
+| `ComplexScenarios`   | `basic`  | 6      | Полные комбинации всех параметров            |
+| `ErrorHandling`      | `error`  | 10     | Исключения для некорректных входных данных   |
+
+### Запуск по тегам
+
+```bash
+# Только граничные случаи
+mvn test -Dgroups=edge
+
+# Только проверка ошибок
+mvn test -Dgroups=error
+
+# Базовые сценарии
+mvn test -Dgroups=basic
+```
+
+---
+
+## Примеры расчётов
+
+| Расстояние | Габарит | Хрупкий | Загруженность | Итог     |
+|------------|---------|---------|---------------|----------|
+| 1 км       | small   | нет     | normal        | 400 ₽ ¹  |
+| 15 км      | large   | да      | high          | 980 ₽    |
+| 31 км      | large   | нет     | very_high     | 800 ₽    |
+| 5 км       | small   | да      | elevated      | 600 ₽    |
+| 31 км      | small   | да      | любая         | ❌ исключение |
+
+> ¹ Расчётная сумма (150 ₽) ниже минимума — возвращается 400 ₽.
+
+---
+
+## Технологии
+
+![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk)
+![Maven](https://img.shields.io/badge/Maven-3.6+-blue?logo=apachemaven)
+![JUnit5](https://img.shields.io/badge/JUnit-5.10-green?logo=junit5)
